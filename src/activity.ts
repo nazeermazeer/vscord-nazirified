@@ -35,6 +35,20 @@ export enum PROBLEM_LEVEL {
     HINT = "hint"
 }
 
+const getElapsedTimeStart = (configuredStart: string | undefined): number | undefined => {
+    if (!configuredStart?.trim()) return undefined;
+
+    const parsedStart = Date.parse(configuredStart);
+    if (Number.isNaN(parsedStart)) {
+        logInfo(
+            "[activity.ts] Invalid status.elapsedTimeStart; expected an ISO-8601 date/time, falling back to the current time."
+        );
+        return undefined;
+    }
+
+    return parsedStart;
+};
+
 // TODO: move this to data class
 const COUNTED_SEVERITIES: { [key in PROBLEM_LEVEL]: number } = {
     error: 0,
@@ -99,9 +113,12 @@ export const activity = async (
     if (isIdling && !config.get(CONFIG_KEYS.Status.Idle.Enabled)) return {};
 
     if (config.get(CONFIG_KEYS.Status.ShowElapsedTime)) {
-        presence.startTimestamp = config.get(CONFIG_KEYS.Status.ResetElapsedTimePerFile)
-            ? Date.now()
-            : (previous.startTimestamp ?? Date.now());
+        const configuredStart = getElapsedTimeStart(config.get(CONFIG_KEYS.Status.ElapsedTimeStart));
+        presence.startTimestamp =
+            configuredStart ??
+            (config.get(CONFIG_KEYS.Status.ResetElapsedTimePerFile)
+                ? Date.now()
+                : (previous.startTimestamp ?? Date.now()));
     } else {
         delete presence.startTimestamp;
     }

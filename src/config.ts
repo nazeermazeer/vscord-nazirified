@@ -122,6 +122,7 @@ export interface ExtensionConfigurationType {
     "status.idle.resetElapsedTime": boolean;
     "status.idle.timeout": number;
     "status.showElapsedTime": boolean;
+    "status.elapsedTimeStart": string;
     "status.resetElapsedTimePerFile": boolean;
     "ignore.workspaces": Array<string>;
     "ignore.workspacesText": string | Record<string, string>;

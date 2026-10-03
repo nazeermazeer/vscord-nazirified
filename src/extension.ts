@@ -21,13 +21,18 @@ export const registerListeners = (ctx: ExtensionContext) => {
         controller.debug = config.get(CONFIG_KEYS.Behaviour.Debug) ?? false;
         editor.updateStatusBarFromConfig();
 
-        if (controller.client.clientId !== clientId) {
+        const clientIdChanged = controller.client.clientId !== clientId;
+        if (clientIdChanged) {
             if (!isEnabled) await controller.disable();
             await controller.login();
             if (isEnabled) await controller.enable();
         }
 
         controller.manualIdleMode = config.get(CONFIG_KEYS.Status.Idle.Check) === false;
+
+        // Refresh the presence immediately when settings such as the elapsed-time
+        // start change instead of waiting for another editor event.
+        if (isEnabled && !clientIdChanged) await controller.sendActivity(dataClass.editor != null);
     });
 
     ctx.subscriptions.push(onConfigurationChanged);

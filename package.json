@@ -1,11 +1,12 @@
 {
-    "name": "vscord",
-    "displayName": "Discord Rich Presence",
+    "name": "vscord-nz",
+    "displayName": "Discord Rich Presence - Now Nazirified",
     "version": "5.3.10",
-    "description": "Highly customizable Discord Rich Presence extension for Visual Studio Code",
-    "publisher": "LeonardSSH",
+    "description": "Highly customizable Discord Rich Presence extension with custom elapsed time for Visual Studio Code",
+    "publisher": "nazeermazeer",
     "license": "MIT",
     "contributors": [
+        "LeonardSSH",
         "xhayper"
     ],
     "repository": "https://github.com/LeonardSSH/vscord",
@@ -57,7 +58,7 @@
         "@rspack/core": "^2.0.6",
         "@types/node": "~22.15.35",
         "@types/vscode": "1.52.0",
-        "@vscode/vsce": "^3.9.2",
+        "@vscode/vsce": "^4.0.0",
         "npm-run-all": "^4.1.5",
         "prettier": "^3.8.3",
         "typescript": "^6.0.3"
@@ -183,6 +184,11 @@
                         "type": "boolean",
                         "default": true,
                         "description": "Should elapsed time be shown?"
+                    },
+                    "vscord.status.elapsedTimeStart": {
+                        "type": "string",
+                        "default": "",
+                        "description": "Start elapsed time from this ISO-8601 date/time. Leave blank to start when the presence begins."
                     },
                     "vscord.status.resetElapsedTimePerFile": {
                         "type": "boolean",
