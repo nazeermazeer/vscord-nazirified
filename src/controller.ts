@@ -23,6 +23,7 @@ export class RPCController {
 
     private idleTimeout: NodeJS.Timeout | undefined;
     private iconTimeout: NodeJS.Timeout | undefined;
+    private activityRequest = 0;
     private activityThrottle = throttle(
         (isViewing?: boolean, isIdling?: boolean) => this.sendActivity(isViewing, isIdling),
         2000,
@@ -75,8 +76,7 @@ export class RPCController {
         const fileSwitch = window.onDidChangeActiveTextEditor((e) => {
             logInfo("onDidChangeActiveTextEditor()");
             if (e) {
-                this.activityThrottle.reset();
-                void this.activityThrottle.callable();
+                this.sendActivityImmediately();
                 return;
             }
             setTimeout(() => {
@@ -92,14 +92,13 @@ export class RPCController {
         const fileSelectionChanged = window.onDidChangeTextEditorSelection((e) => {
             if (e.textEditor !== dataClass.editor) return;
             logInfo("onDidChangeTextEditorSelection()");
-            this.activityThrottle.reset();
-            void this.activityThrottle.callable();
+            this.sendActivityImmediately();
         });
         const debugStart = debug.onDidStartDebugSession(() => {
-            void this.activityThrottle.callable();
+            this.sendActivityImmediately();
         });
         const debugEnd = debug.onDidTerminateDebugSession(() => {
-            void this.activityThrottle.callable();
+            this.sendActivityImmediately();
         });
         const diagnosticsChange = languages.onDidChangeDiagnostics(() => onDiagnosticsChange());
         const changeWindowState = window.onDidChangeWindowState((e: WindowState) => {
@@ -140,7 +139,7 @@ export class RPCController {
         if (config.get(CONFIG_KEYS.Status.Idle.Timeout) !== 0) {
             if (windowState.focused && this.idleTimeout) {
                 clearTimeout(this.idleTimeout);
-                void this.activityThrottle.callable();
+                this.sendActivityImmediately();
             } else if (config.get(CONFIG_KEYS.Status.Idle.Check)) {
                 this.idleTimeout = setTimeout(
                     async () => {
@@ -155,7 +154,7 @@ export class RPCController {
 
                         if (!this.enabled) return;
 
-                        void this.activityThrottle.callable(false, true);
+                        this.sendActivityImmediately(false, true);
                     },
                     config.get(CONFIG_KEYS.Status.Idle.Timeout)! * 1000
                 );
@@ -180,8 +179,12 @@ export class RPCController {
     async sendActivity(isViewing = false, isIdling = false): Promise<SetActivityResponse | undefined> {
         if (!this.enabled) return;
         if (this.manualIdleMode) isIdling = this.manualIdling;
+        const request = ++this.activityRequest;
         this.checkCanSend(isIdling);
-        this.state = await activity(this.state, isViewing, isIdling);
+        const nextState = await activity({ ...this.state }, isViewing, isIdling);
+        if (!this.enabled || request !== this.activityRequest) return;
+
+        this.state = nextState;
         this.state.instance = true;
         if (!this.state || Object.keys(this.state).length === 0 || !this.canSendActivity)
             return void this.client.user?.clearActivity(process.pid);
@@ -200,6 +203,11 @@ export class RPCController {
             );
 
         return this.client.user?.setActivity(this.state, process.pid);
+    }
+
+    private sendActivityImmediately(isViewing = false, isIdling = false) {
+        this.activityThrottle.reset();
+        void this.sendActivity(isViewing, isIdling);
     }
 
     async disable() {
